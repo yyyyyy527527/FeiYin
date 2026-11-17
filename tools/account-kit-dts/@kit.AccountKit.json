@@ -1,0 +1,8 @@
+{
+  "symbols": {
+    "authentication": {
+      "source": "@hms.core.authentication.d.ts",
+      "bindings": "default"
+    }
+  }
+}

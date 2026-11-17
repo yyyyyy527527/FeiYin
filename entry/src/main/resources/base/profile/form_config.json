@@ -1,0 +1,20 @@
+{
+  "forms": [
+    {
+      "name": "music_card",
+      "displayName": "星籁播放",
+      "description": "正在播放",
+      "src": "ets/widget/pages/FormCard.ets",
+      "uiSyntax": "arkts",
+      "window": { "designWidth": 720 },
+      "isDefault": true,
+      "colorMode": "auto",
+      "supportDimensions": ["2*2"],
+      "defaultDimension": "2*2",
+      "updateEnabled": true,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "formVisibleNotify": true
+    }
+  ]
+}

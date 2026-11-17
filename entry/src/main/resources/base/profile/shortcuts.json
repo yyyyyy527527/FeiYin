@@ -1,0 +1,43 @@
+{
+  "shortcuts": [
+    {
+      "shortcutId": "shortcut_random",
+      "label": "$string:shortcut_random",
+      "icon": "$media:app_icon",
+      "wants": [
+        {
+          "bundleName": "com.limerence.feiyin",
+          "moduleName": "entry",
+          "abilityName": "EntryAbility",
+          "parameters": { "shortcut": "random" }
+        }
+      ]
+    },
+    {
+      "shortcutId": "shortcut_favorites",
+      "label": "$string:shortcut_favorites",
+      "icon": "$media:app_icon",
+      "wants": [
+        {
+          "bundleName": "com.limerence.feiyin",
+          "moduleName": "entry",
+          "abilityName": "EntryAbility",
+          "parameters": { "shortcut": "favorites" }
+        }
+      ]
+    },
+    {
+      "shortcutId": "shortcut_daily",
+      "label": "$string:shortcut_daily",
+      "icon": "$media:app_icon",
+      "wants": [
+        {
+          "bundleName": "com.limerence.feiyin",
+          "moduleName": "entry",
+          "abilityName": "EntryAbility",
+          "parameters": { "shortcut": "daily" }
+        }
+      ]
+    }
+  ]
+}

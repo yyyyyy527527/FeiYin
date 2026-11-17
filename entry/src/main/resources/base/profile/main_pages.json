@@ -1,0 +1,10 @@
+{
+  "src": [
+    "pages/Setup",
+    "pages/Library",
+    "pages/SubsonicLibrary",
+    "pages/NowPlaying",
+    "pages/Settings",
+    "pages/Stats"
+  ]
+}

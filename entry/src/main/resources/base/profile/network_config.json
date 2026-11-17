@@ -1,0 +1,17 @@
+{
+  "network-security-config": {
+    "cleartextTrafficPermitted": true,
+    "domain-config": [
+      {
+        "cleartextTrafficPermitted": true,
+        "domains": [
+          { "include-subdomains": true, "name": "fnos.net" },
+          { "include-subdomains": true, "name": "5ddd.com" },
+          { "include-subdomains": false, "name": "localhost" },
+          { "include-subdomains": false, "name": "127.0.0.1" },
+          { "include-subdomains": false, "name": "101.133.159.218" }
+        ]
+      }
+    ]
+  }
+}

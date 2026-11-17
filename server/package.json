@@ -1,0 +1,14 @@
+{
+  "name": "feiyin-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "飞音账号与数据同步服务（零第三方依赖）",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,9 @@
+/build/
+/.idea/
+/node_modules/
+/oh_modules/
+/.hvigor/
+.cxx/
+# 同步服务端的数据目录（含账号与令牌哈希，绝不入库）
+/server/data/
+/server/.testdata/

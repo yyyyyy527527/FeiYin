@@ -1,0 +1,11 @@
+    歌词西文字体 Tinos（Times New Roman 的度量兼容开源替代字体）
+来源：https://github.com/google/fonts/tree/main/ofl/tinos
+许可证：SIL Open Font License 1.1 (https://openfontlicense.org)
+用途：播放页歌词中的英文与数字；中文因 Tinos 无字形，由系统中文字体（黑体）自动接住。
+文件：Tinos-Regular.ttf（普通行）、Tinos-Bold.ttf（当前高亮行）
+
+    刊头题词字体 Playfair Display（Italic）
+来源：https://github.com/google/fonts/tree/main/ofl/playfairdisplay
+许可证：SIL Open Font License 1.1 (https://openfontlicense.org)
+用途：仅播放页顶栏标语「Let A Melody Hold This Moment.」，不参与正文排版。
+文件：PlayfairDisplay-Italic.ttf

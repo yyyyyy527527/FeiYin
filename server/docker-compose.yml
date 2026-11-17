@@ -1,0 +1,20 @@
+services:
+  feiyin-sync:
+    image: node:22-alpine
+    container_name: feiyin-sync
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      # 直接挂载本目录的 index.js，改代码后重启容器即可生效
+      - ./:/app
+      - ./data:/app/data
+    command: node index.js
+    environment:
+      - PORT=8787
+      - DATA_DIR=/app/data
+      # 只接受发给本应用（AGC 飞音）的华为令牌，务必保持设置
+      - EXPECTED_CLIENT_ID=6917620983568967225
+      # 调试用：允许仅凭 openid 登录（不要在生产开启）
+      # - ALLOW_INSECURE_OPENID=1
+    ports:
+      - "8787:8787"

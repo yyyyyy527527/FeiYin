@@ -1,0 +1,8 @@
+{
+  "modelVersion": "6.0.0",
+  "name": "feiyin",
+  "version": "1.0.0",
+  "description": "飞音 FeiYin - 飞牛 NAS 音乐播放器，集成鸿蒙 7 空间音频、互动卡片、闪控窗特性",
+  "dependencies": {},
+  "devDependencies": {}
+}

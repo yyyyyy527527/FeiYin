@@ -1,0 +1,12 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "星籁 NAS 音乐播放器" },
+    { "name": "ability_desc", "value": "星籁主入口" },
+    { "name": "form_name", "value": "星籁卡片" },
+    { "name": "form_desc", "value": "桌面播放控制卡片" },
+    { "name": "perm_mic_reason", "value": "空间音频效果分析" },
+    { "name": "shortcut_random", "value": "随机播放" },
+    { "name": "shortcut_favorites", "value": "播放喜爱" },
+    { "name": "shortcut_daily", "value": "每日推荐" }
+  ]
+}
