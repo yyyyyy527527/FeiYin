@@ -5,7 +5,7 @@ import { Store } from '../store/Store';
 import { Router } from '../utils/Router';
 import { Motion } from '../utils/Motion';
 import { Theme, Fmt, toast, topInset, bottomInset } from '../utils/Theme';
-import { refreshSystemBar } from '../utils/WindowBar';
+import { refreshSystemBar, holdScreenOn } from '../utils/WindowBar';
 import { ClockDial } from '../components/ClockDial';
 import { pickCoverColor, tone, recolor, DEFAULT_ACCENT } from '../utils/CoverColor';
 
@@ -189,6 +189,13 @@ struct NowPlaying {
 
   private tickTimer: number = -1;
   private tickT: number = 0;
+  /** 页面是否还活着（aboutToAppear 置真、aboutToDisappear 置假）。回到前台时据此决定要不要重启动画 */
+  private pageAlive: boolean = false;
+  /**
+   * 应用前后台。切到后台时把场景动画（60ms 一格）和均衡器（130ms 一格）停掉：
+   * 后台播放靠长时任务维持，界面根本不可见，这些定时器只是空转烧电。
+   */
+  @StorageProp('appForeground') @Watch('onAppForeground') private appFg: boolean = true;
 
   // ---------------- 场景装饰：唱片周围的轨道线（Canvas 画，见 drawOrbits） ----------------
   private orbitCtx: CanvasRenderingContext2D = new CanvasRenderingContext2D(new RenderingContextSettings(true));
@@ -496,6 +503,8 @@ struct NowPlaying {
       this.isPlaying = playing;
       this.isLoading = loading;
       this.syncEq(playing);
+      // 播放中才常亮：暂停后放开，别让手机停在播放页一直亮着
+      holdScreenOn(playing);
     };
     // 锁屏/控制中心点了喜爱，播放页的红心跟着变
     p.onFavChange = (fav: boolean) => {
@@ -528,11 +537,17 @@ struct NowPlaying {
     };
 
     this.startSceneTick();
+    // 常亮：进页面时可能已经在放，先按当前播放态申请一次
+    this.pageAlive = true;
+    holdScreenOn(this.isPlaying);
   }
 
   aboutToDisappear(): void {
     // 回到列表页：系统栏图标按全局主题恢复
     refreshSystemBar(this.isDark);
+    // 离开播放页立刻交还常亮，列表页停留不该阻止系统息屏
+    this.pageAlive = false;
+    holdScreenOn(false);
     if (this.tickTimer >= 0) {
       clearInterval(this.tickTimer);
       this.tickTimer = -1;
@@ -610,7 +625,10 @@ struct NowPlaying {
           v[i] = 0.35 + 0.65 * tri;
         }
         this.barsVal = v;
-      } else {
+      } else if (this.barsVal[0] !== 0.35 || this.barsVal[1] !== 0.35
+        || this.barsVal[2] !== 0.35 || this.barsVal[3] !== 0.35) {
+        // 暂停时只在真的还没落回基线时写一次：每 60ms 新建一个相同内容的数组
+        // 会触发一轮无意义的 diff 与重绘
         this.barsVal = [0.35, 0.35, 0.35, 0.35];
       }
 
@@ -620,6 +638,31 @@ struct NowPlaying {
         this.sparkGlow = 1;
       }
     }, 60);
+  }
+
+  private stopSceneTick(): void {
+    if (this.tickTimer >= 0) {
+      clearInterval(this.tickTimer);
+      this.tickTimer = -1;
+    }
+  }
+
+  /**
+   * 前后台切换：后台停场景动画与均衡器，回前台且页面还在时接着跑。
+   * 唱片旋转、音柱跳动、星芒脉动都是纯装饰，屏幕看不见时继续以 60ms/130ms
+   * 的节奏改状态、走 animateTo，只会白耗电和 CPU。
+   */
+  private onAppForeground(): void {
+    if (!this.appFg) {
+      this.stopSceneTick();
+      this.stopEq();
+      return;
+    }
+    if (this.pageAlive) {
+      this.tickT = 0;
+      this.startSceneTick();
+      this.syncEq(Store.get().player().isPlaying);
+    }
   }
 
   // ---------------- 歌词逻辑 ----------------

@@ -27,8 +27,10 @@ const BEAT_RATE: number = 1.85;
 @Component
 export struct BeatWave {
   @StorageProp('isDark') private isDark: boolean = true;
-  @StorageProp('playerPlaying') private playing: boolean = false;
-  @StorageProp('playerLoading') private loading: boolean = false;
+  @StorageProp('playerPlaying') @Watch('onPlayingChanged') private playing: boolean = false;
+  @StorageProp('playerLoading') @Watch('onPlayingChanged') private loading: boolean = false;
+  /** 前后台：波形是 30fps 的 Canvas 重绘，后台必须停，否则纯空转 */
+  @StorageProp('appForeground') @Watch('onAppForeground') private appFg: boolean = true;
 
   private ctx: CanvasRenderingContext2D =
     new CanvasRenderingContext2D(new RenderingContextSettings(true));
@@ -62,11 +64,44 @@ export struct BeatWave {
   }
 
   private start(): void {
-    if (this.timer >= 0) {
+    if (this.timer >= 0 || !this.appFg) {
       return;
     }
     this.last = Date.now();
     this.timer = setInterval(() => { this.step(); }, TICK_MS);
+  }
+
+  private stop(): void {
+    if (this.timer >= 0) {
+      clearInterval(this.timer);
+      this.timer = -1;
+    }
+  }
+
+  /** 退后台停重绘，回前台接着画；暂停时波形本来就该静止，不必空跑 */
+  private onAppForeground(): void {
+    if (this.appFg) {
+      this.start();
+    } else {
+      this.stop();
+    }
+  }
+
+  /** 恢复出声（播放 / 缓冲结束）：重新起定时器（静止后已经被 stop 掉） */
+  private onPlayingChanged(): void {
+    if (this.playing && !this.loading && this.appFg) {
+      this.start();
+    }
+  }
+
+  /** 柱子是否都已经落回基线：落稳后暂停态不需要再以 30fps 重绘 */
+  private settled(): boolean {
+    for (let i = 0; i < BAR_COUNT; i++) {
+      if (Math.abs(this.cur[i] - 0.10) > 0.0025) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private step(): void {
@@ -122,6 +157,12 @@ export struct BeatWave {
     }
 
     this.paint();
+
+    // 暂停且波形已经落稳：停掉定时器，画面就定在这条静止的波形上。
+    // 恢复播放时由 onPlayingChanged 重新启动。
+    if (!active && this.settled()) {
+      this.stop();
+    }
   }
 
   /** '#RRGGBB' → 'rgba(r,g,b,a)'。Canvas 不认 ArkUI 的 #AARRGGBB */

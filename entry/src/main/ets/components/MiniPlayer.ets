@@ -39,6 +39,8 @@ export struct MiniPlayer {
   @StorageProp('winWidth') private winW: number = 0;
   /** 被动暂停原因（来电、别的应用抢焦点…）。空串 = 正常状态，不显示提示 */
   @StorageProp('playerPauseReason') private pauseReason: string = '';
+  /** 前后台：退后台时停掉唱片自转（100ms 一格），回前台且仍收起时再转起来 */
+  @StorageProp('appForeground') @Watch('onAppForeground') private appFg: boolean = true;
   // 必须是 public：private 成员无法从组件构造函数初始化，外部传入的回调会失效
   onTap: () => void = () => {};
   /** 点队列按钮：由页面负责弹队列（弹层状态都在页面里） */
@@ -98,14 +100,22 @@ export struct MiniPlayer {
     });
   }
 
-  /** 唱片自转（只在收起且正在播放时跑，10fps 小状态更新） */
+  /** 唱片自转（只在收起、正在播放、且应用在前台时跑，10fps 小状态更新） */
   private startSpin(): void {
-    if (!this.playing || this.expanded || this.spinTimer !== -1) {
+    if (!this.playing || this.expanded || this.spinTimer !== -1 || !this.appFg) {
       return;
     }
     this.spinTimer = setInterval(() => {
       this.spinAngle = (this.spinAngle + SPIN_STEP) % 360;
     }, SPIN_TICK);
+  }
+
+  private onAppForeground(): void {
+    if (this.appFg) {
+      this.startSpin();
+    } else {
+      this.stopSpin();
+    }
   }
 
   private stopSpin(): void {

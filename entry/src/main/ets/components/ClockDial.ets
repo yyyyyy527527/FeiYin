@@ -22,6 +22,8 @@ export struct ClockDial {
   /** 句内进度 0~1：白色拖尾弧的位置，也决定亮到第几个字 */
   @Prop progress: number = 0;
   @Prop playing: boolean = false;
+  /** 前后台：40ms 一帧的 Canvas 重绘，后台必须停 */
+  @StorageProp('appForeground') @Watch('onAppForeground') private appFg: boolean = true;
 
   private ctx: CanvasRenderingContext2D =
     new CanvasRenderingContext2D(new RenderingContextSettings(true));
@@ -40,6 +42,24 @@ export struct ClockDial {
       this.advance();
       this.draw();
     }, 40);
+  }
+
+  private onAppForeground(): void {
+    if (!this.appFg) {
+      if (this.timer !== -1) {
+        clearInterval(this.timer);
+        this.timer = -1;
+      }
+      return;
+    }
+    if (this.timer === -1) {
+      // 后台待了很久，dt 会很大：重置基准时间，避免回前台第一帧进度突跳
+      this.lastMs = Date.now();
+      this.timer = setInterval(() => {
+        this.advance();
+        this.draw();
+      }, 40);
+    }
   }
 
   aboutToDisappear(): void {

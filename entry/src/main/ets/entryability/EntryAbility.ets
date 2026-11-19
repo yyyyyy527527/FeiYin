@@ -3,7 +3,7 @@ import Want from '@ohos.app.ability.Want';
 import AbilityConstant from '@ohos.app.ability.AbilityConstant';
 import window from '@ohos.window';
 import { Store } from '../store/Store';
-import { applySystemBar, setMainWindow } from '../utils/WindowBar';
+import { applySystemBar, setAppForeground, setMainWindow } from '../utils/WindowBar';
 import { startGripWatch } from '../utils/Grip';
 import { FormSync } from '../utils/FormSync';
 import { Router } from '../utils/Router';
@@ -136,13 +136,17 @@ export default class EntryAbility extends UIAbility {
   }
 
   onForeground(): void {
+    // 回到前台：恢复常亮判定（播放页可能还开着），让后台暂停的动画可以继续
+    setAppForeground(true);
     // 切回前台：把后台攒下的听歌统计补推一次，同时拉取其他设备的更新
     Store.get().autoSync();
   }
 
   onBackground(): void {
     // 后台保活：由 backgroundModes: audioPlayback + 播放时申请的长时任务保证，
-    // 系统媒体卡片（AVSession）在后台/锁屏下仍可控制播放
+    // 系统媒体卡片（AVSession）在后台/锁屏下仍可控制播放。
+    // 这里同时交还「屏幕常亮」并通知页面停掉自绘动画的定时器（见 WindowBar）。
+    setAppForeground(false);
   }
 
   onDestroy(): void {
