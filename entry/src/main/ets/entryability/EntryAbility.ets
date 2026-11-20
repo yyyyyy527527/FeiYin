@@ -83,7 +83,8 @@ export default class EntryAbility extends UIAbility {
     }
   }
 
-  /** 从卡片 postCardAction 的 want 里取 method 参数（模块级辅助函数见文件末尾） */  onWindowStageCreate(windowStage: window.WindowStage): void {
+  /** 窗口就绪：装系统栏、避让区、窗口尺寸监听，然后决定首页 */
+  onWindowStageCreate(windowStage: window.WindowStage): void {
     const win = windowStage.getMainWindowSync();
     setMainWindow(win);
 

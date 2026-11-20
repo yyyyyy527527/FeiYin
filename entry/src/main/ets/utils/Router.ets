@@ -3,7 +3,20 @@ import router from '@ohos.router';
 const MAIN_PAGE: string = 'pages/SubsonicLibrary';
 
 export class Router {
+  /**
+   * 防重复压栈：迷你条/卡片/横滑这类入口都很快，连点两下会把同一个页面
+   * 压两次，返回手势就得划两下才出得去。目标页已在栈顶时直接忽略。
+   */
   static push(url: string): void {
+    try {
+      const st = router.getState();
+      if (st !== undefined && st !== null && typeof st.path === 'string'
+        && st.path.length > 0 && st.path.endsWith(url)) {
+        return;
+      }
+    } catch (_) {
+      // 状态读不到就按原逻辑压栈，不能因为防护把导航卡死
+    }
     router.pushUrl({ url: url }).catch(() => {});
   }
 

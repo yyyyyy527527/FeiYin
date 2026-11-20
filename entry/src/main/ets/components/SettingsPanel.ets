@@ -161,8 +161,11 @@ export struct SettingsPanel {
   /**
    * 可选的页面标题：由调用方传入后会成为滚动内容的第一项，
    * 跟内容一起滚出屏幕——不再固定压在内容上方形成一条遮挡带。
+   * 注意：@BuilderParam 不能声明为 private——private 成员无法从组件构造函数
+   * 初始化，调用方传进来的尾随闭包会被静默丢弃（编译期只有一条 WARN），
+   * 表现就是设置页的滚动首项标题永远不渲染。
    */
-  @BuilderParam private header: () => void = this.emptyHeader;
+  @BuilderParam header: () => void = this.emptyHeader;
   @State private immersiveLight: boolean = true;
   @State private autoCache: boolean = true;
   @State private radio: boolean = true;
