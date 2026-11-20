@@ -239,7 +239,6 @@ export function parseCloudData(raw: Object | undefined): CloudData {
     updatedAt: asNum(o['updatedAt'], 0),
     dark: o['dark'] === true,
     settings: {
-      immersiveLight: settingsObj['immersiveLight'] !== false,
       autoCache: settingsObj['autoCache'] !== false,
       volume: asNum(settingsObj['volume'], 80)
     },

@@ -232,7 +232,6 @@ export interface DailyPickBox {
 export type PlayerSkin = 'classic' | 'vinyl' | 'clock';
 
 export interface AppSettings {
-  immersiveLight: boolean;
   autoCache: boolean;
   volume: number;
   /** 上次的播放模式，启动时恢复。老版本数据里没有这个字段，按 'loop' 处理 */
@@ -284,7 +283,6 @@ export interface RecentEntry {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  immersiveLight: true,
   autoCache: true,
   volume: 80,
   playMode: 'loop',

@@ -79,7 +79,6 @@ export class Store {
   private pref: preferences.Preferences | null = null;
   private _cfg: ServerConfig | null = null;
   private _settings: AppSettings = {
-    immersiveLight: true,
     autoCache: true,
     volume: 80,
     playMode: 'loop',
@@ -822,7 +821,6 @@ export class Store {
         const parsed: Object = JSON.parse(raw);
         const obj = parsed as Record<string, Object>;
         this._settings = {
-          immersiveLight: (obj['immersiveLight'] as boolean) ?? true,
           autoCache: (obj['autoCache'] as boolean) ?? true,
           volume: (obj['volume'] as number) ?? 80,
           // 老版本没有这个字段，默认列表循环；非法值也回落到 loop，
@@ -842,14 +840,13 @@ export class Store {
    * 保存设置。
    *
    * 必须是「合并」而不是「整份替换」：调用方常常只关心自己改的那一两项
-   * （设置页的开关只构造 immersiveLight / autoCache / volume 三项），
+   * （设置页的开关只构造 autoCache / volume 等项），
    * 直接覆盖会把 playMode、songsSort 写成 undefined。表现是——
    * 在设置里拨一下开关，下次启动播放模式回到「循环」、全部歌曲的排序被重置。
    */
   async saveSettings(settings: AppSettings, markChanged: boolean = true): Promise<void> {
     const prev: AppSettings = this._settings;
     const merged: AppSettings = {
-      immersiveLight: settings.immersiveLight === undefined ? prev.immersiveLight : settings.immersiveLight,
       autoCache: settings.autoCache === undefined ? prev.autoCache : settings.autoCache,
       volume: settings.volume === undefined ? prev.volume : settings.volume,
       // 这两项允许由云同步写入，但调用方没给值时沿用本机现值

@@ -166,7 +166,6 @@ export struct SettingsPanel {
    * 表现就是设置页的滚动首项标题永远不渲染。
    */
   @BuilderParam header: () => void = this.emptyHeader;
-  @State private immersiveLight: boolean = true;
   @State private autoCache: boolean = true;
   @State private radio: boolean = true;
   @State private scrobble: boolean = true;
@@ -204,7 +203,6 @@ export struct SettingsPanel {
 
   aboutToAppear(): void {
     const s = Store.get().settings;
-    this.immersiveLight = s.immersiveLight;
     this.autoCache = s.autoCache;
     this.radio = s.radio !== false;
     this.scrobble = s.scrobble !== false;
@@ -483,7 +481,6 @@ export struct SettingsPanel {
   /** 同步/恢复后把面板上的开关与文字重新对齐 Store（云端值可能已经覆盖本地） */
   private refreshSettingsState(): void {
     const s = Store.get().settings;
-    this.immersiveLight = s.immersiveLight;
     this.autoCache = s.autoCache;
     this.radio = s.radio !== false;
     this.scrobble = s.scrobble !== false;
@@ -621,7 +618,6 @@ export struct SettingsPanel {
 
   private async saveSettings(): Promise<void> {
     const settings: AppSettings = {
-      immersiveLight: this.immersiveLight,
       autoCache: this.autoCache,
       volume: this.volume,
       radio: this.radio,
@@ -646,9 +642,7 @@ export struct SettingsPanel {
       this.setDark(v);
       return;
     }
-    if (key === 'immersive') {
-      this.immersiveLight = v;
-    } else if (key === 'cache') {
+    if (key === 'cache') {
       this.autoCache = v;
     } else if (key === 'radio') {
       this.radio = v;
@@ -1062,16 +1056,6 @@ export struct SettingsPanel {
           Text('播放与体验')
             .fontSize(13).fontFamily(APP_FONT).fontColor(Theme.textSecondary(this.isDark)).width('100%')
             .margin({ bottom: 8 })
-          SettingSwitchRow({
-            icon: this.isDark ? $r('app.media.ic_heart') : $r('app.media.ic_heart_d'),
-            title: '沉浸光感',
-            desc: '播放页面光随指动，专辑封面微动效',
-            on: this.immersiveLight,
-            isDark: this.isDark,
-            rowKey: 'immersive',
-            onToggle: (k: string, v: boolean) => { this.applySwitch(k, v); }
-          })
-          Column().height(8)
           SettingSwitchRow({
             icon: this.isDark ? $r('app.media.ic_download') : $r('app.media.ic_download_d'),
             title: '自动缓存',

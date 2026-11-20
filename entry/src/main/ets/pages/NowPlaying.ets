@@ -129,7 +129,6 @@ struct NowPlaying {
   @State private playPos: number = 0;
   @State private duration: number = 0;
   @State private playMode: PlayMode = 'loop';
-  @State private immersiveOn: boolean = false;
   @State private liked: boolean = false;
   @State private coverUrl: string = '';
   /** 封面主色：时计皮肤的环、字、背景光全部由它派生 */
@@ -165,8 +164,6 @@ struct NowPlaying {
 
   /** 底部四根跳动音柱的高度系数（0.35~1），暂停时齐齐落回 0.35 */
   @State private barsVal: number[] = [0.35, 0.35, 0.35, 0.35];
-  /** 星芒透明度：沉浸光感开启且播放时缓慢脉动（对应参考稿 echo-glow） */
-  @State private sparkGlow: number = 1;
   /** 队列序号（1 起）与总数：footer 右侧 01 — 03 */
   @State private trackNo: number = 0;
   @State private queueLen: number = 0;
@@ -447,7 +444,6 @@ struct NowPlaying {
     refreshSystemBar(true);
     const p = Store.get().player();
     const s = Store.get().settings;
-    this.immersiveOn = s.immersiveLight;
     this.skin = Store.get().playerSkin;
     this.playMode = p.playMode;
     this.syncQueuePos();
@@ -632,11 +628,6 @@ struct NowPlaying {
         this.barsVal = [0.35, 0.35, 0.35, 0.35];
       }
 
-      if (this.isPlaying && this.immersiveOn) {
-        this.sparkGlow = 0.55 + 0.45 * Math.sin(this.tickT / 5500 * Math.PI * 2);
-      } else {
-        this.sparkGlow = 1;
-      }
     }, 60);
   }
 
@@ -1135,7 +1126,7 @@ struct NowPlaying {
         .borderRadius(size * 0.15)
     }
     .width(size).height(size)
-    .opacity(opacity * this.sparkGlow)
+    .opacity(opacity)
     .position({ x: px, y: py })
     .hitTestBehavior(HitTestMode.None)
   }
