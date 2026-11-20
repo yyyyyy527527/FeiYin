@@ -53,6 +53,10 @@ export class PlayerCore {
   /** 上次落盘存档时的播放位置。位置类写入按 5s 节流，900ms 一次 stringify+flush 太浪费 */
   private _lastSavedPos: number = -1;
   private _duration: number = 0;
+  /** 本轮播放是否已计入「播放次数」。听满阈值才计（见 countPlayIfNeeded），快速切走不算 */
+  private _playCounted: boolean = false;
+  /** 本轮播放实际出声的秒数（暂停/卡顿不计），用于播放次数的听满判断 */
+  private _listenAccum: number = 0;
   private shuffle: boolean = false;
   // 默认列表循环：与播放页默认显示的「循环」图标、以及系统卡片声明的 LOOP_MODE_LIST 保持一致
   private repeat: RepeatMode = 'all';
@@ -1216,8 +1220,10 @@ export class PlayerCore {
         this.startPosTimer();
         try {
           await player.play();
-          // 真正开始播放才算一次（加载失败、切走都不计）
-          Store.get().countTrackPlay(track);
+          // 播放次数不再在出声瞬间计：听满阈值（整曲一半与 30 秒取小者）才算一次，
+          // 点进来划走的歌不进排行、不涨「统计曲目」。详见 countPlayIfNeeded。
+          this._playCounted = false;
+          this._listenAccum = 0;
           // 「最近播放」只在真的出声后记：点进来又立刻切走的，不算听过
           Store.get().noteRecent(track);
           // 上报「正在播放」：服务器的「正在播放」列表与推荐权重都靠它
@@ -1253,6 +1259,7 @@ export class PlayerCore {
         // 整首放完了但还没到「一半 / 4 分钟」的唯一可能是超短曲；
         // 这里补一次判断，保证真正听完的歌不会漏报
         this.maybeScrobbleSubmit(this._duration);
+        this.forceCountPlay();
         if (this.repeat === 'one') {
           // 单曲循环：回到开头重新播。
           // seek 已允许 completed 态（见 seek 注释），否则这里会静默失败，
@@ -1490,6 +1497,9 @@ export class PlayerCore {
             delta = 2;
           }
           Store.get().addListenSeconds(delta, this.currentTrack);
+          // 累计本轮出声秒数，攒够阈值把这首歌记一次「播放」
+          this._listenAccum += delta;
+          this.countPlayIfNeeded();
         }
         this.lastTickAt = now;
         const pos: number = this.avPlayer.currentTime;
@@ -1517,6 +1527,41 @@ export class PlayerCore {
   }
 
   // ---------------- 播放上报（scrobble） ----------------
+
+  /**
+   * 听满阈值就把当前这首计一次「播放」。
+   * 口径：整曲一半与 30 秒取小者——超短曲听一半就算，长曲听满 30 秒算。
+   * 暂停/卡顿不累计（_listenAccum 只在 playing 的 tick 里涨），
+   * 同一首暂停再续播累计仍有效，切歌则清零重新算。
+   */
+  private countPlayIfNeeded(): void {
+    if (this._playCounted) {
+      return;
+    }
+    const cur: Track | null = this.currentTrack;
+    if (cur === null) {
+      return;
+    }
+    const durMs: number = this._duration > 0 ? this._duration : cur.duration;
+    const need: number = durMs > 0 ? Math.min(durMs / 2000, 30) : 30;
+    if (this._listenAccum >= need) {
+      this._playCounted = true;
+      Store.get().countTrackPlay(cur);
+    }
+  }
+
+  /** 整曲放完补计一次：超短曲听满全程也该算「听过」，不能被阈值卡掉 */
+  private forceCountPlay(): void {
+    if (this._playCounted) {
+      return;
+    }
+    const cur: Track | null = this.currentTrack;
+    if (cur === null) {
+      return;
+    }
+    this._playCounted = true;
+    Store.get().countTrackPlay(cur);
+  }
 
   /**
    * 开播上报：告诉服务器「我现在在听这首」。

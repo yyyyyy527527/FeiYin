@@ -388,25 +388,32 @@ export class Store {
     return (track.artist + '-' + track.title).toLowerCase();
   }
 
-  /** 最多留 400 首，按播放次数与时长淘汰冷门曲目 */
+  /** 最多留 2000 首，按播放次数与时长淘汰冷门曲目（400 会在大曲库下把统计封顶） */
   private pruneTrackStats(): void {
     const keys: string[] = Object.keys(this._trackStats);
-    if (keys.length <= 400) {
+    if (keys.length <= 2000) {
       return;
     }
     const all: TrackStat[] = keys.map((k: string) => this._trackStats[k]);
     all.sort((a: TrackStat, b: TrackStat) => (b.plays - a.plays) || (b.seconds - a.seconds));
     const keep: Record<string, TrackStat> = {};
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 2000; i++) {
       keep[all[i].id] = all[i];
     }
     this._trackStats = keep;
   }
 
-  /** 单曲排行：按播放次数降序，同次数按时长降序 */
+  /** 单曲排行：按播放次数降序，同次数按时长降序。只统计听满过阈值的（plays>=1） */
   topTracks(limit: number): TrackStat[] {
     const keys: string[] = Object.keys(this._trackStats);
-    const all: TrackStat[] = keys.map((k: string) => this._trackStats[k]);
+    const all: TrackStat[] = [];
+    for (const k of keys) {
+      // 播放次数为 0 的记录只有「听了几秒就切走」的碎片时长，
+      // 不算听过，排行/统计曲目/艺人都不应包含
+      if (this._trackStats[k].plays > 0) {
+        all.push(this._trackStats[k]);
+      }
+    }
     all.sort((a: TrackStat, b: TrackStat) => {
       if (b.plays !== a.plays) {
         return b.plays - a.plays;
@@ -416,9 +423,16 @@ export class Store {
     return limit > 0 && all.length > limit ? all.slice(0, limit) : all;
   }
 
-  /** 有统计记录的曲目数 */
+  /** 听过至少一次（听满阈值计入一次播放）的曲目数 */
   trackStatCount(): number {
-    return Object.keys(this._trackStats).length;
+    let n: number = 0;
+    const keys: string[] = Object.keys(this._trackStats);
+    for (const k of keys) {
+      if (this._trackStats[k].plays > 0) {
+        n++;
+      }
+    }
+    return n;
   }
 
   /** 单曲统计（「最常播放」排序用）；没有记录返回 null */
