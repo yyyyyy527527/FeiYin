@@ -154,6 +154,10 @@ struct SubsonicLibrary {
   private starredGen: number = 0;
   /** 页面销毁后停止后台预载 */
   private alive: boolean = true;
+  /** 快捷方式监听回调：必须存引用，销毁时 off 才能注销同一个函数 */
+  private shortcutHandler: (name: string) => void = () => {};
+  /** eventHub 是否已注册（防止重复 on） */
+  private shortcutSubscribed: boolean = false;
   /** 打开专辑详情前所处的视图：返回时按原路退回，而不是一律回首页 */
   private albumOrigin: string = 'main';
 
@@ -170,11 +174,20 @@ struct SubsonicLibrary {
     this.songsSort = Store.get().settings.songsSort ?? 'default';
     this.loadHome();
     // 桌面长按图标快捷方式（随机播放 / 播放喜爱 / 每日推荐）：
-    // EntryAbility 冷启动 / 热启动都会把动作广播到这里
-    const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
-    ctx.eventHub.on('shortcut_action', (name: string) => {
-      this.runShortcut(name);
-    });
+    // EntryAbility 冷启动 / 热启动都会把动作广播到这里。
+    // 回调存成成员、去重注册，销毁时才能用同一个引用 off 掉——
+    // 否则 Setup 配置成功后 Router.replace 重建本页，旧监听器残留，
+    // 一个快捷动作会触发多次，且回调还握着已销毁的组件实例。
+    if (!this.shortcutSubscribed) {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      this.shortcutHandler = (name: string) => {
+        if (this.alive) {
+          this.runShortcut(name);
+        }
+      };
+      ctx.eventHub.on('shortcut_action', this.shortcutHandler);
+      this.shortcutSubscribed = true;
+    }
   }
 
   /** 快捷方式动作：能直接播的直接播，不打断用户停在哪个页面 */
@@ -235,6 +248,13 @@ struct SubsonicLibrary {
 
   aboutToDisappear(): void {
     this.alive = false;
+    // 注销快捷方式监听：不 off 的话回调持有本组件实例无法释放，
+    // 且重建后一个动作会触发多次（见 aboutToAppear 的说明）
+    if (this.shortcutSubscribed) {
+      const ctx: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
+      ctx.eventHub.off('shortcut_action', this.shortcutHandler);
+      this.shortcutSubscribed = false;
+    }
     // 过渡定时器不清会一直持有本组件实例，退出页面后回调里还在改已销毁的状态
     if (this.transitionTimer !== -1) {
       clearTimeout(this.transitionTimer);
