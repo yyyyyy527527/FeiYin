@@ -1264,6 +1264,11 @@ export class PlayerCore {
           // 单曲循环：回到开头重新播。
           // seek 已允许 completed 态（见 seek 注释），否则这里会静默失败，
           // 表现就是「单曲循环只响了一遍」。
+          // 计数标记要跟着清零——这条路径不经过 loadCurrent（那里才会重置），
+          // 否则第二遍起 _playCounted 仍为 true，听完不再计次，
+          // 与「单曲循环每完整一遍各计一次」的口径不符。
+          this._playCounted = false;
+          this._listenAccum = 0;
           try {
             await this.seek(0);
             await player.play();
