@@ -75,25 +75,3 @@ export function parseLrc(text: string): LyricsResult {
   const result: LyricsResult = { lines: out, synced: synced };
   return result;
 }
-
-/**
- * 归一化用于歌名/歌手匹配的字符串：
- * 转小写、去空白与标点、去括号里的「翻唱/原唱/live/cover」等修饰，
- * 让「晴天 (原唱 周杰伦)」和「晴天」能对上。
- */
-export function normalizeTitle(s: string): string {
-  let t: string = s.toLowerCase();
-  // 去掉中英文括号及其内容（含封面常见的 (Live) / （DJ版） / [原唱:xxx]）
-  t = t.replace(/[\(（\[【][^)）\]】]*[\)）\]】]/g, '');
-  // 去掉分隔标点与空白
-  t = t.replace(/[\s\-_'’"“”、,，.!！?？:：;；/\\|]+/g, '');
-  return t;
-}
-
-/** 歌手名归一化：只去空白与常见后缀，保留「周杰伦」「Jay Chou」本体 */
-export function normalizeArtist(s: string): string {
-  let t: string = s.toLowerCase();
-  t = t.replace(/\s*\(?原唱[:：]?.*$/, '');
-  t = t.replace(/[\s'’"“”、,，.!/\\|]+/g, '');
-  return t;
-}

@@ -148,22 +148,10 @@ export interface LyricLine {
   text: string;
 }
 
-/**
- * 歌词来源：server=服务器(Navidrome/NAS)自带，online=在线兜底匹配，none=没找到。
- * 缺省字段一律按 server 处理，兼容旧缓存与升级前的本地数据。
- */
-export type LyricSource = 'server' | 'online' | 'none';
-
 /** 歌词结果。synced 为 true 表示带时间轴，可滚动高亮 */
 export interface LyricsResult {
   lines: LyricLine[];
   synced: boolean;
-  /** 歌词来自哪里。缺省 = server */
-  source?: LyricSource;
-  /** 在线匹配命中的具体版本（歌手 - 歌名），供用户核对有没有选错版本 */
-  sourceName?: string;
-  /** 是否已经尝试过在线兜底（含开关关闭未尝试、尝试但没找到两种区别） */
-  onlineTried?: boolean;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -254,8 +242,6 @@ export interface AppSettings {
   radio?: boolean;
   /** 播放上报：把正在播放 / 已听够 提交给服务器（scrobble）。默认开启 */
   scrobble?: boolean;
-  /** 在线歌词兜底：服务端没收录歌词时从公开接口匹配。默认开启 */
-  onlineLyric?: boolean;
   /** 播放页外观。老版本没有这个字段，按经典玻璃版处理 */
   playerSkin?: PlayerSkin;
 }
@@ -303,7 +289,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   songsSort: 'default',
   radio: true,
   scrobble: true,
-  onlineLyric: true,
   playerSkin: 'classic',
 };
 

@@ -1,5 +1,5 @@
 import { pasteboard } from '@kit.BasicServicesKit';
-import { Track, PlayMode, LyricLine, LyricsResult, LyricSource, PlayerSkin } from '../model/Models';
+import { Track, PlayMode, LyricLine, LyricsResult, PlayerSkin } from '../model/Models';
 import { APP_FONT, APP_FONT_SCRIPT, registerAppFonts } from '../utils/Fonts';
 import { Store } from '../store/Store';
 import { Router } from '../utils/Router';
@@ -211,12 +211,6 @@ struct NowPlaying {
   @State private lyricsLoading: boolean = false;
   /** 歌词请求抛异常，与「服务器确实没收录」区分开 */
   @State private lyricsFailed: boolean = false;
-  /** 歌词来源：server=服务器自带 / online=在线匹配 / none=没找到 */
-  @State private lyricSource: LyricSource = 'none';
-  /** 在线匹配命中的具体版本，点来源徽标时展示 */
-  @State private lyricSourceName: string = '';
-  /** 是否尝试过在线兜底（用于区分「没找到」与「压根没试」） */
-  @State private lyricOnlineTried: boolean = false;
   @State private curLine: number = -1;
   private lyricsTrackId: string = '';
 
@@ -678,9 +672,6 @@ struct NowPlaying {
     this.lyrics = [];
     this.lyricsSynced = false;
     this.lyricsFailed = false;
-    this.lyricSource = 'none';
-    this.lyricSourceName = '';
-    this.lyricOnlineTried = false;
     this.curLine = -1;
     this.lyricsLoading = true;
     try {
@@ -691,14 +682,10 @@ struct NowPlaying {
       }
       this.lyrics = res.lines;
       this.lyricsSynced = res.synced;
-      this.lyricSource = res.source ?? 'server';
-      this.lyricSourceName = res.sourceName ?? '';
-      this.lyricOnlineTried = res.onlineTried ?? false;
     } catch (e) {
       this.lyrics = [];
       this.lyricsSynced = false;
       this.lyricsFailed = true;
-      this.lyricSource = 'none';
     }
     this.lyricsLoading = false;
     if (this.lyricsSynced) {
@@ -1784,52 +1771,6 @@ struct NowPlaying {
     .hitTestBehavior(HitTestMode.None)
   }
 
-  /** 来源徽标的文案：让用户一眼看出歌词是服务器自带还是在线匹配的 */
-  private lyricSourceLabel(): string {
-    if (this.lyricsLoading) {
-      return '';
-    }
-    if (this.lyrics.length === 0) {
-      if (this.lyricsFailed) {
-        return '获取失败';
-      }
-      return this.lyricOnlineTried ? '在线未找到' : '暂无来源';
-    }
-    if (this.lyricSource === 'online') {
-      return '在线匹配';
-    }
-    return '服务器歌词';
-  }
-
-  /** 点来源徽标：在线匹配时提示命中的是哪个版本，方便核对有没有选错歌 */
-  private showLyricSource(): void {
-    if (this.lyricSource === 'online' && this.lyricSourceName.length > 0) {
-      toast('在线匹配：' + this.lyricSourceName);
-    } else if (this.lyricSource === 'server') {
-      toast('来自你的音乐服务器');
-    } else if (this.lyricSource === 'none' && this.lyricOnlineTried) {
-      toast('服务器与在线均未找到歌词');
-    }
-  }
-
-  /**
-   * 歌词来源徽标：卡脚中间那枚小字，点一下可看来源详情。
-   * 在线匹配用彩色区分，其余用低对比灰，不抢歌词视觉。
-   */
-  @Builder
-  lyricSourceBadge() {
-    if (this.lyricSourceLabel().length > 0) {
-      Text(this.lyricSourceLabel())
-        .fontSize(6.8 * this.k()).fontFamily(APP_FONT)
-        .letterSpacing(0.6 * this.k())
-        .fontColor(this.lyricSource === 'online' ? '#2A6CA8' : '#8A98AD')
-        .padding({ left: 4 * this.k(), right: 4 * this.k(), top: 1 * this.k(), bottom: 1 * this.k() })
-        .borderRadius(3 * this.k())
-        .backgroundColor(this.lyricSource === 'online' ? '#1A2A6CA8' : '#00000000')
-        .onClick(() => { this.showLyricSource(); })
-    }
-  }
-
   /**
    * 歌词卡（左上角那张拍立得）：卡头 LYRICS、卡内 7 行滚动歌词、卡脚曲目序号。
    * 当前句加粗染墨、其余压淡；点任意一句跳过去。
@@ -1936,7 +1877,6 @@ struct NowPlaying {
           .letterSpacing(1.4 * this.k())
           .fontColor('#8A98AD')
         Row().layoutWeight(1)
-        this.lyricSourceBadge()
         Text(this.lyricsLoading ? 'S Y N C I N G'
           : (this.lyricsSynced
             // 调过轴就把偏移直接写在脚注上，否则用户不知道这首歌被平移过
@@ -2240,7 +2180,6 @@ struct NowPlaying {
           .fontSize(7.2 * this.k()).fontFamily(APP_FONT)
           .letterSpacing(1.6 * this.k())
           .fontColor('#8FA0B4')
-        this.lyricSourceBadge()
         Row()
           .layoutWeight(1)
           .height(1)
