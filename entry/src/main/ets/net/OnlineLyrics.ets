@@ -249,6 +249,11 @@ export async function fetchOnlineLyrics(artist: string, title: string, durationM
       cachePut(key, empty);
       return empty;
     }
+    // 打上来源与命中版本，播放页据此标注「在线匹配」并可点击查看是哪一个版本
+    parsed.source = 'online';
+    parsed.sourceName = best.artists.length > 0
+      ? (best.artists + ' - ' + best.name)
+      : best.name;
     cachePut(key, parsed);
     return parsed;
   } catch (e) {

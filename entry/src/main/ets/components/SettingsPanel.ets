@@ -1095,7 +1095,7 @@ export struct SettingsPanel {
           SettingSwitchRow({
             icon: this.isDark ? $r('app.media.ic_lyrics') : $r('app.media.ic_lyrics_d'),
             title: '在线歌词兜底',
-            desc: '服务器没歌词时自动匹配网络歌词；关掉只用服务器自带的',
+            desc: '服务器没歌词时自动匹配网络歌词；匹配上的歌在播放页歌词卡标注「在线匹配」，点它可看是哪个版本',
             on: this.onlineLyric,
             isDark: this.isDark,
             rowKey: 'onlineLyric',

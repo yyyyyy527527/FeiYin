@@ -1914,7 +1914,7 @@ export class Store {
   async lyricsFor(track: Track): Promise<LyricsResult> {
     const s: Subsonic | null = this.subsonicClient();
     if (s === null) {
-      const empty: LyricsResult = { lines: [], synced: false };
+      const empty: LyricsResult = { lines: [], synced: false, source: 'none' };
       return empty;
     }
     // 歌词就几 KB，按 songId 在内存里存一份：重放同一首不再发请求，
@@ -1924,10 +1924,15 @@ export class Store {
       return hit;
     }
     let r: LyricsResult = await s.getLyrics(track.id, track.artist, track.title);
+    // 服务端结果默认标记为 server；在线模块成功时会自带 source='online'
+    if (r.source === undefined) {
+      r.source = 'server';
+    }
     // 在线兜底：服务端完全没词、或只有静态文本（没时间轴）时，
     // 试着从公开接口匹配一份带时间轴的歌词。开关关掉则不走网络。
     // 已有同步歌词（r.synced）一律保留服务端版本——它和本地音频是对应的，最准。
     if (this.settings.onlineLyric !== false && !r.synced) {
+      r.onlineTried = true;
       const online: LyricsResult = await fetchOnlineLyrics(
         track.artist, track.title, track.duration > 0 ? track.duration : 0);
       // 只在线面结果「更好」时替换：带时间轴的优先；
@@ -1937,6 +1942,10 @@ export class Store {
       } else if (r.lines.length === 0 && online.lines.length > 0) {
         r = online;
       }
+    }
+    // 彻底没词时明确标记为 none，播放页据此区分「没找到」与「没试过」
+    if (r.lines.length === 0) {
+      r.source = 'none';
     }
     if (this._lyricCache.has(track.id)) {
       this._lyricCache.delete(track.id);

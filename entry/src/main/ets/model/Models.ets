@@ -148,10 +148,22 @@ export interface LyricLine {
   text: string;
 }
 
+/**
+ * 歌词来源：server=服务器(Navidrome/NAS)自带，online=在线兜底匹配，none=没找到。
+ * 缺省字段一律按 server 处理，兼容旧缓存与升级前的本地数据。
+ */
+export type LyricSource = 'server' | 'online' | 'none';
+
 /** 歌词结果。synced 为 true 表示带时间轴，可滚动高亮 */
 export interface LyricsResult {
   lines: LyricLine[];
   synced: boolean;
+  /** 歌词来自哪里。缺省 = server */
+  source?: LyricSource;
+  /** 在线匹配命中的具体版本（歌手 - 歌名），供用户核对有没有选错版本 */
+  sourceName?: string;
+  /** 是否已经尝试过在线兜底（含开关关闭未尝试、尝试但没找到两种区别） */
+  onlineTried?: boolean;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
