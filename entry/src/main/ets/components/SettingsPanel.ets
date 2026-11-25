@@ -169,6 +169,7 @@ export struct SettingsPanel {
   @State private autoCache: boolean = true;
   @State private radio: boolean = true;
   @State private scrobble: boolean = true;
+  @State private onlineLyric: boolean = true;
   @State private volume: number = 80;
   /** 播放页外观：classic 经典玻璃版 / vinyl 唱片封套版 */
   @State private skin: PlayerSkin = 'classic';
@@ -206,6 +207,7 @@ export struct SettingsPanel {
     this.autoCache = s.autoCache;
     this.radio = s.radio !== false;
     this.scrobble = s.scrobble !== false;
+    this.onlineLyric = s.onlineLyric !== false;
     this.volume = s.volume;
     this.skin = Store.get().playerSkin;
     const cfg = Store.get().serverConfig;
@@ -484,6 +486,7 @@ export struct SettingsPanel {
     this.autoCache = s.autoCache;
     this.radio = s.radio !== false;
     this.scrobble = s.scrobble !== false;
+    this.onlineLyric = s.onlineLyric !== false;
     this.volume = s.volume;
     this.refreshListenStats();
     this.refreshTrackStats();
@@ -622,6 +625,7 @@ export struct SettingsPanel {
       volume: this.volume,
       radio: this.radio,
       scrobble: this.scrobble,
+      onlineLyric: this.onlineLyric,
       playerSkin: this.skin
     };
     await Store.get().saveSettings(settings);
@@ -648,6 +652,8 @@ export struct SettingsPanel {
       this.radio = v;
     } else if (key === 'scrobble') {
       this.scrobble = v;
+    } else if (key === 'onlineLyric') {
+      this.onlineLyric = v;
     }
     this.saveSettings();
   }
@@ -1083,6 +1089,16 @@ export struct SettingsPanel {
             on: this.scrobble,
             isDark: this.isDark,
             rowKey: 'scrobble',
+            onToggle: (k: string, v: boolean) => { this.applySwitch(k, v); }
+          })
+          Column().height(8)
+          SettingSwitchRow({
+            icon: this.isDark ? $r('app.media.ic_lyrics') : $r('app.media.ic_lyrics_d'),
+            title: '在线歌词兜底',
+            desc: '服务器没歌词时自动匹配网络歌词；关掉只用服务器自带的',
+            on: this.onlineLyric,
+            isDark: this.isDark,
+            rowKey: 'onlineLyric',
             onToggle: (k: string, v: boolean) => { this.applySwitch(k, v); }
           })
           Column().height(8)

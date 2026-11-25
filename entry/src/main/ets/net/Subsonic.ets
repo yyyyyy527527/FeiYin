@@ -4,6 +4,7 @@ import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { ServerConfig, TestResult, Artist, Album, Genre, Track,
   ArtistDetail, AlbumDetail, SearchResult, StarredResult, LyricLine, LyricsResult, Playlist,
   SongProbe } from '../model/Models';
+import { parseLrc } from '../utils/LrcParser';
 
 type JsonObj = Record<string, Object>;
 
@@ -893,81 +894,6 @@ export function bindSubsonic(s: Subsonic): void {
  *      旧实现按原顺序输出，而查找逻辑「遇到超前的行就 break」，
  *      于是乱序点之后的歌词永远命中不到，表现为「后面一直卡在某一 句」。
  */
-function parseLrc(text: string): LyricsResult {
-  const rawLines: string[] = text.split('\n');
-  const out: LyricLine[] = [];
-  // 暂存「无时间戳」的行，等整段扫完再决定去留：
-  //   · 整段都没有时间轴 → 纯文本歌词，按原顺序展示
-  //   · 整段有时间轴     → 丢弃（这类行是制作信息/备注，混进来会打乱序号）
-  const orphan: string[] = [];
-  let synced: boolean = false;
-  for (const raw of rawLines) {
-    const line: string = raw.replace(/\r$/, '');
-    if (line.trim().length === 0) {
-      continue;
-    }
-    // LRC 头部元数据 [ar:艺术家] [ti:标题] [al:专辑] [by:制作] [offset:+/-毫秒] [re:] [ve:]
-    // 它们不是歌词，之前因为只匹配 [数字:数字] 而被当成无戳行推入列表，
-    // 拿 start=0 挤在歌首，导致列表顶部多出一串方括号、并且整体滚动位置偏移。
-    if (/^\[(ar|ti|al|by|offset|re|ve|length|au|kana):/i.test(line)) {
-      continue;
-    }
-    // 从行首连续吃时间标签，直到吃不动为止
-    const stamps: number[] = [];
-    let cursor: number = 0;
-    while (true) {
-      const head: RegExpMatchArray | null =
-        line.substring(cursor).match(/^\[(\d+):(\d+)(?:[.:](\d+))?\]/);
-      if (head === null) {
-        break;
-      }
-      const min: number = Number(head[1]);
-      const sec: number = Number(head[2]);
-      let ms: number = 0;
-      if (head.length > 3 && head[3] !== undefined) {
-        const frac: string = head[3];
-        const f: number = Number(frac);
-        if (isFinite(f) && frac.length > 0) {
-          ms = Math.round(f / Math.pow(10, frac.length) * 1000);
-        }
-      }
-      stamps.push((min * 60 + sec) * 1000 + ms);
-      cursor += head[0].length;
-    }
-    if (stamps.length > 0) {
-      const content: string = line.substring(cursor).trim();
-      if (content.length > 0) {
-        for (const st of stamps) {
-          const tl: LyricLine = { start: st, text: content };
-          out.push(tl);
-        }
-        synced = true;
-      }
-    } else {
-      // 无时间戳的行先存起来。整段若是纯文本歌词，按原顺序展示；
-      // 整段若有时间轴，这类行（制作信息、翻译备注、空行占位）
-      // 一律丢弃——之前它们拿 start=0 排到最前面，
-      // 列表顶部凭空多出几句、且每一行序号后移，滚动和高亮同时错位。
-      orphan.push(line.trim());
-    }
-  }
-  if (synced) {
-    // 有时间轴：无戳行全部丢弃（orphan 不参与输出）。
-    // 保留它们就得给一个猜测的时间点，而这个时间点必然和相邻句
-    // 争夺同一时刻，表现为「某一句早了一拍 / 卡住不换」。
-    // 排序是为了让二分查找成立（规范不保证原文件升序）。
-    out.sort((a: LyricLine, b: LyricLine) => a.start - b.start);
-  } else {
-    // 纯文本歌词：没有时间轴，保持原始阅读顺序
-    for (const o of orphan) {
-      const pl: LyricLine = { start: 0, text: o };
-      out.push(pl);
-    }
-  }
-  const result: LyricsResult = { lines: out, synced: synced };
-  return result;
-}
-
 function enc(s: string): string {
   return encodeURIComponent(s);
 }

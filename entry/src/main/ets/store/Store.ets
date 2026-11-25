@@ -8,6 +8,7 @@ import { ServerConfig, Track, AppSettings, DEFAULT_SETTINGS, PlayerSkin, WebDavE
   SongProbe, RecentEntry } from '../model/Models';
 import { WebDav } from '../net/WebDav';
 import { Subsonic, bindSubsonic } from '../net/Subsonic';
+import { fetchOnlineLyrics, clearOnlineLyricCache } from '../net/OnlineLyrics';
 import { CloudAccount, CloudData, SyncApi, SyncResult, LoginResult } from '../net/SyncApi';
 import { PlayerCore } from '../player/PlayerCore';
 import { Fmt, initTheme } from '../utils/Theme';
@@ -85,6 +86,7 @@ export class Store {
     songsSort: 'default',
     radio: true,
     scrobble: true,
+    onlineLyric: true,
     playerSkin: 'classic'
   };
   private _dav: WebDav | null = null;
@@ -772,6 +774,7 @@ export class Store {
     this._subsonic = null;
     // 服务器换了：同一个 songId 指向的可能完全是另一首歌，歌词缓存作废
     this._lyricCache.clear();
+    clearOnlineLyricCache();
     // 曲库/收藏缓存同理：里面存的全是旧服务器的歌 id。
     // 只有作用域真的变了才删——同一台服务器改密码/根路径不该把缓存清掉
     if (oldScope.length > 0 && oldScope !== newScope) {
@@ -843,6 +846,7 @@ export class Store {
           songsSort: this.parseSongsSort(obj['songsSort'] as string),
           radio: (obj['radio'] as boolean) ?? true,
           scrobble: (obj['scrobble'] as boolean) ?? true,
+          onlineLyric: (obj['onlineLyric'] as boolean) ?? true,
           playerSkin: this.parseSkin(obj['playerSkin'] as string)
         };
       } catch (e) {
@@ -878,6 +882,10 @@ export class Store {
       scrobble: settings.scrobble === undefined
         ? (prev.scrobble === undefined ? true : prev.scrobble)
         : settings.scrobble,
+      // 在线歌词兜底：同理，用户明确关掉（false）不能被当成「没给值」
+      onlineLyric: settings.onlineLyric === undefined
+        ? (prev.onlineLyric === undefined ? true : prev.onlineLyric)
+        : settings.onlineLyric,
       // 播放页外观：同样只改自己关心的项，没给值沿用现值
       playerSkin: settings.playerSkin === undefined
         ? (prev.playerSkin === undefined ? 'classic' : prev.playerSkin)
@@ -1915,7 +1923,21 @@ export class Store {
     if (hit !== undefined) {
       return hit;
     }
-    const r: LyricsResult = await s.getLyrics(track.id, track.artist, track.title);
+    let r: LyricsResult = await s.getLyrics(track.id, track.artist, track.title);
+    // 在线兜底：服务端完全没词、或只有静态文本（没时间轴）时，
+    // 试着从公开接口匹配一份带时间轴的歌词。开关关掉则不走网络。
+    // 已有同步歌词（r.synced）一律保留服务端版本——它和本地音频是对应的，最准。
+    if (this.settings.onlineLyric !== false && !r.synced) {
+      const online: LyricsResult = await fetchOnlineLyrics(
+        track.artist, track.title, track.duration > 0 ? track.duration : 0);
+      // 只在线面结果「更好」时替换：带时间轴的优先；
+      // 都是静态文本时，别用匹配来的词覆盖服务端自带的（来源更可信）
+      if (online.synced && online.lines.length > 0) {
+        r = online;
+      } else if (r.lines.length === 0 && online.lines.length > 0) {
+        r = online;
+      }
+    }
     if (this._lyricCache.has(track.id)) {
       this._lyricCache.delete(track.id);
     }

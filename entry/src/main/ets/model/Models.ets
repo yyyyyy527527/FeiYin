@@ -242,6 +242,8 @@ export interface AppSettings {
   radio?: boolean;
   /** 播放上报：把正在播放 / 已听够 提交给服务器（scrobble）。默认开启 */
   scrobble?: boolean;
+  /** 在线歌词兜底：服务端没收录歌词时从公开接口匹配。默认开启 */
+  onlineLyric?: boolean;
   /** 播放页外观。老版本没有这个字段，按经典玻璃版处理 */
   playerSkin?: PlayerSkin;
 }
@@ -289,6 +291,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   songsSort: 'default',
   radio: true,
   scrobble: true,
+  onlineLyric: true,
   playerSkin: 'classic',
 };
 
